@@ -1,9 +1,11 @@
 package com.june.book.springboot.web.dto;
 
 import com.june.book.springboot.domain.posts.Posts;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+@Getter
 public class PostsListResponseDto {
     private Long id;
     private String title;

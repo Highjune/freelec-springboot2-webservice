@@ -4,20 +4,22 @@ var main = {
         $('#btn-save').on('click', function () {
             _this.save();
         });
+
         $('#btn-update').on('click', function () {
             _this.update();
         });
+
         $('#btn-delete').on('click', function () {
             _this.delete();
         });
     },
-
     save: function () {
         var data = {
             title: $('#title').val(),
             author: $('#author').val(),
             content: $('#content').val()
         };
+
         $.ajax({
             type: 'POST',
             url: '/api/v1/posts',
@@ -53,7 +55,6 @@ var main = {
             alert(JSON.stringify(error));
         });
     },
-
     delete : function () {
         var id = $('#id').val();
 

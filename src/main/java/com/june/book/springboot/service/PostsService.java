@@ -33,6 +33,14 @@ public class PostsService {
         return id;
     }
 
+    @Transactional
+    public void delete(Long id) {
+        Posts posts = postsRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 없습니다. id = " + id));
+
+        postsRepository.delete(posts);
+    }
+
     @Transactional(readOnly = true)
     public PostsResponseDto findById (Long id){
         Posts entity = postsRepository.findById(id)
@@ -43,16 +51,8 @@ public class PostsService {
 
     @Transactional(readOnly = true) //조회기능만 있는 경우는 이런식으로 readonly=true로 주면 조회속도가 개선(조회 기능만 갖고 있으므로)
     public List<PostsListResponseDto> findAllDesc(){
-        return postsRepository.findAll().stream()
+        return postsRepository.findAllDesc().stream()
                 .map(PostsListResponseDto::new) //람다임 .map(posts -> new PostsListResponseDto(posts))와 같다
                 .collect(Collectors.toList());
     }
-
-    @Transactional
-    public void delete(Long id) {
-        Posts posts = postsRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 게시물이 없습니다. id = " + id));
-        postsRepository.delete(posts);
-    }
-
 }
