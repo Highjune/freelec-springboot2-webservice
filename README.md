@@ -173,7 +173,45 @@ sudo ./ install auto # install 파일로 설치를 진행
 
 sudo service codedeploy-agent status # 실행 확인
 
-Ths AWS CodeDeploy agent is running as PID xxx # 이 메시지가 나오면 정상입니다.
+Ths AWS CodeDeploy agent is running as PID xxx # 이 메시지가 나오면 정상이다
 ```
 
+### CodeDeploy -> EC2 접근을 위해 CodeDeploy에서 사용할 IAM 역할 생성
 
+CodeDeploy에서 EC2에 접근하려면 마찬가지로 권한이 필요하다. AWS의 서비스이니 IAM 역할을 생성한다. IAM > 역할 만들기 > AWS 서비스 > CodeDeploy 선택. CodeDeploy의 권한은 하나뿐이라서 선택 없이 바로 다음으로 넘어간다. 태그 역시 본인이 원하는 이름으로 짓는다.
+
+### CodeDeploy 생성
+CodeDeploy는 AWS의 배포 삼형제 중 하나
+
+- Code Commit
+  - 깃허브와 같은 코드 저장소의 역할을 한다.
+  - 프라이빗 기능을 지원한다는 강점이 있지만, 현재 깃허브에서 무료로 프라이빗 지원을 하고 있어서 거의 사용되지 않는다.
+  
+- Code Build
+  - Travis CI 와 마찬가지로 빌드용 서비스.
+  - 멀티 모듈을 배포해야 하는 경우 사용해 볼만하지만, 규모가 있는 서비스에서는 대부분 젠킨스/팀시티 등을 이용 하니 이것 역시 사용할 일이 거의 없다.
+  
+- Code Deploy
+  - AWS의 배포 서비스입니다.
+  - 앞에서 언급한 다른 서비스들은 대체재가 있고, 딱히 대체재보다 나은 점이 없지만, CodeDeploy는 대체재가 없다.
+  - 오토 스케일링 그룹 배포, 블루 그린 배포, 롤링 배포, EC2 단독 배포 등 많은 기능을 지원한다.
+  
+현재 프로젝트에서는 Code Commit의 역할은 github가, Code Build의 역할은 Travis CI 가 하고있다.
+
+서비스 > CodeDeploy 서비스로 이동 해서 애플리케이션 생성 버튼 을 클릭한다.
+
+- 애플리케이션 이름을 입력.
+- 컴퓨팅 플랫폼은 EC2/온프레미스 를 선택
+
+생성이 완료되면 배포 그룹을 생성하라는 메시지를 볼 수 있다. 배포 그룹 생성 버튼을 클릭.
+
+- 배포 그룹 이름을 입력.
+- 서비스 역할 선택은 방금 생성한 IAM 역할을 선택.
+- 배포 유형은 현재 위치를 선택.
+  - 배포할 서비스가 2대 이상이라면 블루/그린을 선택하면 된다.
+- 환경 구성에는 Amazon EC2 인스턴스 에 체크한다.
+- 배포 구성을 CodeDeployDefault.AllAtOnce 를 선택하고 로드밸런싱은 체크 해제한다.
+
+여기 까지 CodeDeploy 설정은 끝이 났다. 이제 Travis CI와 CodeDeploy를 연동해 보겠다.
+
+ 
