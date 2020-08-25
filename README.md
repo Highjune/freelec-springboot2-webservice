@@ -57,4 +57,22 @@ S3란 AWS에서 제공하는 일종의 파일 서버이다. 이미지 파일을 
 
 ![process](https://user-images.githubusercontent.com/57219160/90869301-fcac2980-e3d2-11ea-98f9-f587f1726902.png)
 
-첫 번째 단계로 
+첫 번째 단계로  Travis CI와 S3를 연동한다. 실제 배포는 AWS CodeDeploy라는 서비스를 이용한다. 하지만, S3 연동이 먼저 필요한 이유는 Jar 파일을 전달하기 위해서다. CodeDeploy는 저장 기능이 없기 때문에 Travis CI가 빌드한 결과물을 받아서 CodeDeploy가 가져갈 수 있도록 보관할 수 있는 공간이 필요하다. 보통 이럴 때 AWS S3를 이용한다.
+
+### AWS Key(IAM, identity and Access Management) 발급
+
+일반적으로 AWS 서비스에 외부 서비스가 접근할 수 없다. 그러므로 접근 가능한 권한을 가진 Key 를 생성해서 사용해야 한다. AWS에서는 이러한 인증과 관련된 기능을 제공하는 서비스로 IAM(Identity and Access Management) 이 있다.
+
+IAM 은 AWS에서 제공하는 서비스의 접근 방식과 권한을 관리한다. 이 IAM을 통해 Travis CI가 AWS S3와 CodeDeploy에 접근할 수 있도록 하겠다.
+
+첫 번째로 IAM을 발급 받기 위해서 서비스 > IAM > 왼쪽 사이드바 > 사용자 > 사용자 추가 로 이동한다.
+
+- 사용자 세부 정보 설정 > 사용자 이름 를 입력한다.
+- AWS 엑세스 유형 선택 > 엑세스 유형 > 프로그래밍 방식 엑세스 를 체크.
+- 사용자 권한 설정 > 기존 정책 직접 연결 을 선택.
+- 정책 검색 화면에서 2가지 정책을 추가.
+  - s3full 검색&체크
+  - CodeDeployFull 검색&체크
+- 태크 추가 > 태그 Name 값 지정 는 본인이 인지 가능한 정도의 이름으로 만든다.
+
+최종 생성이 완료되면 엑세스 키와 비밀 엑세스 키가 생성된다. 이것을 Travis CI에 등록해준다.
