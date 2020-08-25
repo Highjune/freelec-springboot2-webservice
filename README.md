@@ -214,4 +214,117 @@ CodeDeploy는 AWS의 배포 삼형제 중 하나
 
 여기 까지 CodeDeploy 설정은 끝이 났다. 이제 Travis CI와 CodeDeploy를 연동해 보겠다.
 
- 
+### CodeDeploy 관련 설정을 프로젝트의 appspec.yml에 추가
+먼저 S3에서 넘겨줄 zip파일을 저장할 디렉토리를 EC2 서버에 하나 생성한다.
+```
+mkdir ~/app/step2 && mkdir ~/app/step2/zip
+```
+
+Travis CI의 Build가 끝나면 S3에 zip 파일이 전송되고, 이 zip 파일은 /home/ec2-user/app/step2/zip로 복사되어 압축을 풀 예정입니다.
+
+AWS CodeDeploy 설정을 위해 프로젝트에 appspec.yml 파일을 추가 합니다.
+
+- appspec.yml
+
+```
+version: 0.0 # (1)
+os: linux
+files:
+  - source: / # (2)
+    destination: /home/ec2-user/app/step2/zip/ # (3)
+    overwrite: yes # (4)
+```
+
+(1) ```version```
+- CodeDeploy 버전을 이야기합니다.
+- 프로젝트 버전이 아니므로 0.0외에 다른 버전을 사용하면 오류가 발생한다.
+
+(2) ```source```
+- CodeDeploy에서 전달해 준 파일 중 destination으로 이동시킬 대상을 지정한다.
+- 루트 경로(/)를 지정하면 전체 파일을 이야기한다.
+
+(3)```destination```
+- source에서 지정된 파일을 받을 위치
+- 이후 jar를 실행하는 등은 destination에서 옮긴 파일들로 진행된다.
+
+(4)```overwrite```
+- 기존에 들이 있으면 덮어쓸지를 결정한다.
+- 현재 yes라고 했으니 파일들을 덮어쓰게 된다.
+
+### Travis CI 설정 파일(.travis.yml)에 CodeDeploy 내용을 추가
+
+- .travis.yml
+```
+deploy:
+  ...
+
+  - provider: codedeploy
+    access_key_id: $AWS_ACCESS_KEY # Travis repo setting에 설정된 값
+    secret_access_key: $AWS_SECRET_KEY # Travis repo setting에 설정된 값
+
+    bucket: freelec-springboot-doop-build # S3 버킷
+    key: freelec-springboot2-webservice.zip # 빌드 파일을 압축해서 전달
+    bundle_type: zip # 압축 확장자
+    application: freelec-springboot2-webservice # 웹 콘솔에서 등록한 CodeDeploy 애플리케이션
+
+    deployment_group: freelec-springboot2-webservice-group # 웹솔에서 등록한 CodeDeploy 배포 그룹
+
+    region: ap-northeast-2
+    wait-until-deployed: true
+```
+
+모든 내용을 작성했다면 깃 허브에 커밋/ 푸시를 하고 CodeDeploy 에서 배포가 수행되는 것을 확인할 수 있다. 또한 cd /home/ec2-user/app/step2/zip 경로에서 프로젝트 파일들이 잘 도착했음을 볼 수 있다.
+
+
+### 배포 자동화 구성(스크립트 파일(.sh) 작성)
+
+앞의 과정으로 Travis CI와 S3, CodeDeploy가 연동이 완료되었습니다. 이제 이것을 기반으로 실제로 Jar를 배포하여 실행 까지 해보겠습니다.
+
+먼저 step 2 환경에서 실행될 deploy 스크립트 파일을 생성하겠습니다. 프로젝트 src 디렐토리와 같은 위치에 scripts 디렉토리를 생성해서 여기에 스크립트를 생성 합니다.
+
+- deploy 스크립트 파일(.sh)
+```
+#!/bin/bash
+
+REPOSITORY=/home/ec2-user/app/step2
+PROJECT_NAME=freelec-springboot2-webservice
+
+echo "> Build 파일 복사"
+
+cp $REPOSITORY/zip/*.jar $REPOSITORY/
+
+echo "> 현재 구동 중인 애플리케이션 pid 확인"
+
+CURRENT_PID=$(pgrep -fl freelec-springboot2-webservice | grep jar | awk '{print $1}') # (1)
+
+echo "현재 구동 중인 애플리케이션pid: $CURRENT_PID"
+
+if [ -z "$CURRENT_PID" ]; then
+  echo "> 현재 구동 중인 애플리케이션이 없으므로 종료하지 않습니다."
+else
+  echo "> kill -15 $CURRENT_PID"
+  kill -15 $CURRENT_PID
+  sleep 5
+fi
+
+echo "> 새 애플리케이션 배포"
+
+JAR_NAME=$(ls -tr $REPOSITORY/*.jar | tail -n 1)
+
+echo "> JAR NAME: $JAR_NAME"
+
+echo "> $JAR_NAME 에 실행권한 추가"
+
+chmod +x $JAR_NAME # (2)
+
+echo "> $JAR_NAME 실행"
+
+nohup java -jar \
+    -Dspring.config.location=classpath:/application.properties,classpath:/application-real.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties \
+    -Dspring.profiles.active=real \
+    $JAR_NAME > $REPOSITORY/nohup.out 2>&1 & # (3)
+```
+
+(1) 
+
+
