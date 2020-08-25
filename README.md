@@ -1,5 +1,5 @@
 # freelec-springboot2-webservice
-
+# [참조](https://doorisopen.github.io/)
 
 ### CI & CD
 코드 버전 관리를 하는 VCS 시스템(git, svn 등)에 push를 하면 자동으로 테스트와 빌드가 수행되어 안정적인 배포 파일을 만드는 과정을 CI(Continuous Integration- 지속적 통합) 이라고 하며, 이 빌드 경과를 자동으로 운영 서버에 무중단 배포까지 진행되는 과정을 CD(Continuous Deployment-지속적인 배포) 라고 한다
@@ -341,6 +341,64 @@ nohup java -jar \
 
 step 1과 2의 차이점은 step 1에서 git pull을 통해 직접 빌드했던 부분을 제거 했습니다. 그리고 Jar를 실행하는 단계에서 몇가지 코드가 추가되었습니다.
 
+### 배포를 위한 스크립트(Jar, appspec.yml)가 아닌 것을 제외하기 위해 .travis.yml 내용 수정
+
+- .travis.yml
+
+```
+script: "./gradlew clean build"
+
+before_deploy:
+  - mkdir -p before-deploy # zip에 포함시킬 파일들을 담을 디렉토리 생성 # (1)
+  - cp scripts/*.sh before-deploy/ # (2)
+  - cp appspec.yml before-deploy/
+  - cp build/libs/*.jar before-deploy/
+  - cd before-deploy && zip -r before-deploy * # before-deploy로 이동 후 전체 압축 # (3)
+  - cd ../ && mkdir -p deploy # 상위 디렉토리로 이동 후 deploy 디렉토리 생성
+  - mv before-deploy/before-deploy.zip deploy/freelec-springboot2-webservice.zip # deploy로 zip파일 이동
+```
+(1) ```Travis CI는 S3로 특정 파일만 업로드가 안된다```
+- 디렉토리 단위로만 업로드할 수 있기 때문에 deploy 디렉토리는 항상 생성한다.
+
+(2) ```before-deploy에는 zip 파일에 포함시킬 파일들을 저장```
+
+(3) ```zip -r 명령어를 통해 before-deploy 디렉토리 전체 파일을 압축한다.```
+
+### Codedeploy 명령을 담당할 appspec.yml 파일 수정
+
+- appspec.yml
+
+```
+permissions: # (1)
+  - object: /
+    pattern: "**"
+    owner: ec2-user
+    group: ec2-user
+
+hooks: # (1)
+  ApplicationStart:
+    - location: start.sh # 엔진엑스와 연결되어 있지 않은 Port로 새 버전의 스프링 부트를 시작합니다.
+      timeout: 60
+      runas: ec2-user
+
+```
+
+(1) ```permissions```
+- CodeDeploy에서 EC2 서버로 넘겨준 파일들을 모두 ec2-user 권한을 갖도록 한다.
+
+(2) ```hooks```
+- CodeDeploy 배포 단계에서 실행할 명령어를 지정한다.
+- ApplicationStart라는 단계에서 deploy 스크립트를 ec2-user 권한으로 실행하게 한다. 
+- timeout: 60으로 스크립트 실행 60초 이상 수행되면 실패가 된다.(무한정 기다림을 방지하기 위함)
+
+이렇게 모든 설정이 완료 되었다. 커밋/푸시를 하고 간단하게 view 파일을 수정하고 웹 브라우저에서 확인해보면 변경됨을 확인할 수 있다.
 
 
+### CodeDeploy 로그 확인
+
+CodeDeploy에 관한 대부분의 내용은 
+
+/opt/codedeploy-agent/deployment-root에 서 확인할 수 있다.
+
+step 2 에서의 문제점은 배포하는 동안 스프링 부트 프로젝트는 종료 상태가 되어 서비스를 이용할 수 없다는 것. step 3 에서는 서비스 중단 없는 배포 방법 으로 개선해보겠다.
 
