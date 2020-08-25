@@ -98,4 +98,82 @@ AWS의 S3(Simple Storage Service) 는 일종의 파일 서버다. 순수하게 �
 
 S3가 생성되었으니 이제 S3로 배포 파일을 전달해 보겠다. .travis.yml 파일에 코드를 추가한다.
 
+- .travis.yml
+
 ```
+script: "./gradlew clean build"
+
+before_deploy: # (1)
+  - zip -r freelec-springboot2-webservice * # (2)
+  - mkdir -p deploy # (3)
+  - mv freelec-springboot2-webservice.zip deploy/freelec-springboot2-webservice.zip # (4)
+
+deploy: # (5)
+  - provider: s3
+    access_key_id: $AWS_ACCESS_KEY # Travis repo setting에 설정된 값
+    secret_access_key: $AWS_SECRET_KEY # Travis repo setting에 설정된 값
+    bucket: freelec-springboot-doop-build # S3 버킷
+    region: ap-northeast-2
+    skip_cleanup: true
+    acl: private # zip 파일 접근을 private으로
+    local_dir: deploy # before_deploy에서 생성한 디렉토리 # (6)
+    wait-until-deployed: true
+```
+
+(1) ```before_deploy```
+- deploy 명령어가 실행되기 전에 수행된다
+- CodeDeploy는 Jar 파일은 인식하지 못하므로 Jar + 기타 설정 파일들을 모아 압축(zip)한다.
+
+(2) ```zip -r freelec-springboot2-webservice```
+- 현재 위치의 모든 파일을 freelec-springboot2-webservice 이름으로 압축(zip)한다.
+- 명령어의 마지막 위치는 본인의 프로젝트 이름이어야 한다.
+
+(3) ```mkdir -p deploy```
+- deploy라는 디렉토리를 Travis CI가 실행중인 위치에서 생성
+
+(4) ```mv freelec-springboot2-webservice.zip deploy/freelec-springboot2-webservice.zip```
+- freelec-springboot2-webservice.zip 파일을 deploy/freelec-springboot2-webservice.zip으로 이동
+
+(5)```local_dir: deploy```
+- 앞에서 생성한 deploy 디렉토리를 지정
+- 해당 위치의 파일 들만 S3로 전송합니다.
+
+
+### Travis CI와 AWS S3, CodeDeploy 연동하기
+
+### EC2와 CodeDeploy 연동
+EC2가 CodeDeploy를 연동 받을 수 있게 EC2에서 사용할 IAM 역할 생성.
+
+S3와 마찬가지로 IAM검색 합니다. 이번에는 사용자가 아닌 역할 을 선택한다. IAM > 역할 만들기
+- 역할
+  - AWS 서비스에만 할당할 수 있는 권한
+  - EC2, CodeDeploy, SQS 등
+  
+- 사용자
+  - AWS 서비스 외에 사용할 수 있는 권한
+  - 로컬 pc, IDC 서버 등
+  
+지금 만들 권한은 EC2에서 사용할 것 이므로 역할 만들기에서 서비스 선택를 AWS 서비스 > EC2 으로 차례로 선택. 정책에선 EC2RoleForA 검색 > AmazonEC2RoleforAWS-CodeDeploy 선택. 태그는 본인이 원하는 이름으로 짓는다. 마지막으로 역할의 이름을 등록하고 나머지 등록 정보를 최종적으로 확인.
+
+이렇게 만든 역할을 EC2 서비스에 등록. EC2 인스턴스 목록으로 이동한 뒤, 본인의 인스턴스를 마우스 오른쪽 클릭 > 인스턴스 설정 > IAM 역할 연결/바꾸기 차례로 선택한다. 그리고 방금 생성한 역할을 선택하고 인스턴스를 재부팅해준다.
+
+
+### EC2 서버에 CodeDeploy 에이전트 설치
+재부팅이 완료되었으면 CodeDeploy의 요청을 받을 수 있게 EC2 서버에 에이전트를 하나 설치한다.
+
+```
+aws s3 cp s3://aws-codedeploy-ap-northeast-2/latest/install .--region ap-northeast-2
+...(내려받기 성공 후 메시지)
+download: s3://aws-codedeploy-ap-northeast-2/latest/install to ./install
+
+# 아래 명령어를 이어서 수행한다.
+chmod +x ./install // 실행 권한 추가
+
+sudo ./ install auto # install 파일로 설치를 진행
+
+sudo service codedeploy-agent status # 실행 확인
+
+Ths AWS CodeDeploy agent is running as PID xxx # 이 메시지가 나오면 정상입니다.
+```
+
+
