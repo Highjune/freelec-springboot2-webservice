@@ -1,5 +1,5 @@
 # freelec-springboot2-webservice
-# [참조](https://doorisopen.github.io/)
+[참조](https://doorisopen.github.io/), 책
 
 ### CI & CD
 코드 버전 관리를 하는 VCS 시스템(git, svn 등)에 push를 하면 자동으로 테스트와 빌드가 수행되어 안정적인 배포 파일을 만드는 과정을 CI(Continuous Integration- 지속적 통합) 이라고 하며, 이 빌드 경과를 자동으로 운영 서버에 무중단 배포까지 진행되는 과정을 CD(Continuous Deployment-지속적인 배포) 라고 한다
