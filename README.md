@@ -325,6 +325,22 @@ nohup java -jar \
     $JAR_NAME > $REPOSITORY/nohup.out 2>&1 & # (3)
 ```
 
-(1) 
+(1) ```CURRENT_PID```
+- 현재 수행 중인 스프링 부트 애플리케이션의 프로세스 ID를 찾는다.
+- 실행 중이면 종료하기 위해서이다.
+
+(2) ```chmod +x $JAR_NAME```
+- Jar 파일은 실행 권한이 없는 상태.
+- nohup으로 실행할 수 있게 실행 권한을 부여.
+
+(3) ```$JAR_NAME > $REPOSITORY/nohup.out 2>&1 &```
+- nohup 실행 시 CodeDeploy는 무한 대기 상태다.
+- 이 이슈를 해결하기 위해 nohup.out 파일을 표준 입출력용으로 별도로 사용한다.
+- 이렇게 하지 않으면 nohup.out 파일이 생기지 않고, CodeDeploy 로그에 표준 입출력이 출력된다.
+- nohup이 끝나기 전까지 CodeDeploy도 끝나지 않으니 꼭 이렇게 해야만 한다.
+
+step 1과 2의 차이점은 step 1에서 git pull을 통해 직접 빌드했던 부분을 제거 했습니다. 그리고 Jar를 실행하는 단계에서 몇가지 코드가 추가되었습니다.
+
+
 
 
