@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringRunner.class)
+@RunWith(SpringRunner.class) //JUnit에 내장된 실행자 외에 SpringRunner라는 실행자 사용(스프링 부트 테스트와 JUnit사이에 연결자 역할)
 @WebMvcTest(controllers = HelloController.class,
         excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
@@ -26,15 +26,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class HelloControllerTest {
 
     @Autowired
-    private MockMvc mvc;
+    private MockMvc mvc; //스프링 MVC 테스트의 시작점. 이 클래스를 통해 HTTP GET, POST 등에 대한 API 테스트 가능
 
     @WithMockUser(roles="USER")
     @Test
     public void hello가_리턴된다() throws Exception{
         String hello = "hello";
 
-        mvc.perform(get("/hello"))
-                .andExpect(status().isOk())
+        mvc.perform(get("/hello")) //MockMvc를 통해 /hello 주소로 HTTP GET 요청하는 것
+                .andExpect(status().isOk()) //요청에 대한 결과. 200인지
                 .andExpect(content().string(hello));
     }
 
@@ -44,7 +44,7 @@ public class HelloControllerTest {
         String name = "hello";
         int amount = 1000;
 
-        mvc.perform(
+        mvc.perform( //param은 string만 허용되기 때문에 문자열로 변경해야 한다. 그래서 valueOf로 변환
                 get("/hello/dto").param("name", name).param("amount", String.valueOf(amount)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is(name)))
