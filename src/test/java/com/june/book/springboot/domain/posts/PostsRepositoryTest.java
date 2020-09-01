@@ -49,6 +49,7 @@ public class PostsRepositoryTest {
     public void BaseTimeEntity_등록(){
         //given
         LocalDateTime now = LocalDateTime.of(2020,8,7,0,0,0);
+
         postsRepository.save(Posts.builder()
                 .title("title")
                 .content("content")
@@ -67,4 +68,3 @@ public class PostsRepositoryTest {
         assertThat(posts.getModifiedDate()).isAfter(now);
     }
 }
-

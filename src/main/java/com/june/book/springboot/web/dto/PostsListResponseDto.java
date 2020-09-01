@@ -19,3 +19,4 @@ public class PostsListResponseDto {
         this.modifiedDate = entity.getModifiedDate();
     }
 }
+
