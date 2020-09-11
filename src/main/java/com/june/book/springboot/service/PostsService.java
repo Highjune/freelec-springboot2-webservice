@@ -20,12 +20,12 @@ public class PostsService {
 
     @Transactional
     public long save(PostsSaveRequestDto requestDto) {
-        return postsRepository.save(requestDto.toEntity()).getId();
+        return postsRepository.save(requestDto.toEntity()).getId(); //save는 jpa에 의해 자동생성
     }
 
     @Transactional
     public Long update(Long id, PostsUpdateRequestDto requestDto) {
-        Posts posts = postsRepository.findById(id)
+        Posts posts = postsRepository.findById(id) //findById는 jpa에 의해 자동생성
                 .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 없습니다. id=" + id));
 
         posts.update(requestDto.getTitle(), requestDto.getContent());
